@@ -4,7 +4,7 @@ var viewer = new Cesium.Viewer('cesiumContainer', {
 	animation: false,
 	scene3DOnly: true
 });
-var blanks = function(a){return a.charAt(0) != '#' && a !== "";};
+var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a !== "";};
 var parseStageLine = function(line) {
 	var tokens = line.split("\t");
 	var relPos = [+tokens[1], +tokens[2], +tokens[3]];
@@ -31,6 +31,7 @@ function addHazard(coords) {
 
 function loadMission(missionName, stages) {
 	viewer.entities.removeAll();
+	viewer.scene.primitives.removeAll();
 	missionName = missionName.replace(/ /g, "_");
 	var haz = new XMLHttpRequest();
 	haz.open("GET", missionName + "/hazard.txt", true);
@@ -59,14 +60,30 @@ function loadMission(missionName, stages) {
 		xhr.open("GET", missionName + "/" + stage.name + ".dat", true);
 		xhr.onreadystatechange = function() {
 			if (this.status === 200 && this.readyState === 4) {
-				var points = this.responseText.split("\n").filter(blanks).map(parseStageLine);
-				viewer.entities.add({
-					polyline : {
-						positions : Cesium.Cartesian3.fromRadiansArrayHeights(points.reduce(function(a, b) { return a.concat(b);}, [])),
-						width : 3,
-						material : Cesium.Color[stage.color]
-					}
+				var lines = this.responseText.split("\n").filter(blanks);
+				var colors = lines.map(stage.name === "UpperStage" ?
+					function(line) { return Cesium.Color[stage.color]; } :
+					function(line) { var num = +line.split("\t")[12]; var color = (num > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color];console.log(color.toString()); return color; });
+				var points = lines.map(parseStageLine);
+				points = points.reduce(function(a,b) { return a.concat(b); }, []);
+				points = Cesium.Cartesian3.fromRadiansArrayHeights(points);
+
+				var primitive = new Cesium.Primitive({
+					geometryInstances : new Cesium.GeometryInstance({
+						geometry : new Cesium.PolylineGeometry({
+							positions : points,
+							width : 3,
+							vertexFormat : Cesium.PolylineColorAppearance.VERTEX_FORMAT,
+							colors: colors,
+							colorsPerVertex: true
+						})
+					}),
+					appearance : new Cesium.PolylineColorAppearance({
+						translucent : false
+					})
 				});
+
+				viewer.scene.primitives.add(primitive);
 			}
 		};
 		xhr.send(null)
