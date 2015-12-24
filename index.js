@@ -17,6 +17,7 @@ var parseStageLine = function(line) {
 	return [psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000];
 };
 function addHazard(coords) {
+	if (coords.length === 0) return;
 	viewer.entities.add({
 	  name : 'Hazard',
 	  polygon : {
@@ -43,12 +44,12 @@ function loadMission(missionName) {
 					addHazard(coords);
 					coords = [];
 				} else {
-					var point = points[i].split("\t");
+					var point = points[i].split(/\s+/);
 					coords.push(+point[0]);
 					coords.push(+point[1]);
 				}
 			}
-			if (coords.length > 0) addHazard(coords);
+			addHazard(coords);
 		}
 	};
 	haz.send(null);
