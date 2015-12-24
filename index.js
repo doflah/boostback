@@ -32,6 +32,7 @@ function addHazard(coords) {
 function loadMission(missionName, stages) {
 	viewer.entities.removeAll();
 	viewer.scene.primitives.removeAll();
+	document.title = "Boostback | " + missionName;
 	missionName = missionName.replace(/ /g, "_");
 	var haz = new XMLHttpRequest();
 	haz.open("GET", missionName + "/hazard.txt", true);
