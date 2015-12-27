@@ -1,53 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
-  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
-  <title>Boostback</title>
-  <style>
-      @import url(cesium/Widgets/widgets.css);
-      #cesiumContainer {
-          position: absolute;
-          top: 0;
-          left: 0;
-          height: 100%;
-          width: 100%;
-          margin: 0;
-          overflow: hidden;
-          padding: 0;
-          font-family: sans-serif;
-      }
-      html {
-        height: 100%;
-      }
-      body {
-          padding: 0;
-          margin: 0;
-          overflow: hidden;
-          height: 100%;
-      }
-	nav {
-		height: 2em;
-		position:fixed;
-		top:0px;
-		width: 100%;
-		z-index: 1;
-	}
-  </style>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+	<title>Boostback</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+		integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<style>
+		@import url(cesium/Widgets/widgets.css);
+		#cesiumContainer {
+			position: absolute;
+			top: 0;
+			left: 0;
+			height: 100%;
+			width: 100%;
+			margin: 0;
+			overflow: hidden;
+			padding: 0;
+			font-family: sans-serif;
+		}
+		html {
+			height: 100%;
+		}
+		body {
+			padding: 0;
+			margin: 0;
+			overflow: hidden;
+			height: 100%;
+		}
+		.missionSelector {
+			padding-top: 10px;
+		}
+		.missionSelector > button {
+			width: 80%;
+		}
+		#launchPlayer {
+			height: 300px;
+			width: 300px;
+		}
+	</style>
 </head>
 <body>
-  <nav>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}]' value=CRS-5></input>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}]' value=DSCOVR></input>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}]' value=CRS-7></input>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}]' value="OrbComm OG2 Launch 2"></input>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}]' value=Jason-3></input>
-	<input type=button data-stages='[{"name":"UpperStage", "color":"CYAN"}, {"name":"Core", "color":"LIGHTGREEN"}, {"name":"Booster", "color":"RED"}]' value="Falcon Heavy"></input>
-  </nav>
-  <div id="cesiumContainer"></div>
-  <canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none">
-  <script src="cesium/Cesium.js"></script>
-  <script src="index.js"> </script>
+	<div id="cesiumContainer"></div>
+	<canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none"></canvas>
+	<div class="missionSelector" style="position:fixed;height:100%;width:200px;left:0px;">
+		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=CRS-5 data-video=p7x-SumbynI data-start=958>CRS-5</button>
+		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=DSCOVR data-video=OvHJSIKP0Hg data-start=960>DSCOVR</button>
+		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=CRS-7>CRS-7</button>
+		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2</button>
+		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=Jason-3>Jason-3</button>
+		<button type=button class="btn btn-primary mission" data-vehicle=FH data-mission=Falcon_Heavy>Falcon Heavy</button>
+		<div id=launchPlayer></div>
+	</div>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script>
+		// 2. This code loads the IFrame Player API code asynchronously.
+		var tag = document.createElement('script');
+		tag.src = "https://www.youtube.com/iframe_api";
+		var firstScriptTag = document.getElementsByTagName('script')[0];
+		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+		// 3. This function creates an <iframe> (and YouTube player)
+		//    after the API code downloads.
+		function onYouTubeIframeAPIReady() { }
+	</script>
+
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+		integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+	<script src="cesium/Cesium.js"></script>
+	<script src="index.js"> </script>
 </body>
 </html>

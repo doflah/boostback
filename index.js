@@ -2,36 +2,47 @@ var viewer = new Cesium.Viewer('cesiumContainer', {
 	timeline: false,
 	skyAtmosphere: false,
 	animation: false,
-	scene3DOnly: true
+	scene3DOnly: true,
+	fullscreenButton: false
 });
-var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a !== "";};
-var parseStageLine = function(line) {
-	var tokens = line.split("\t");
-	var relPos = [+tokens[1], +tokens[2], +tokens[3]];
-    var tempBeta = [0, 0, 0];
-    tempBeta[1] = Math.PI - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
-    tempBeta[2] = Math.PI + Math.atan2(relPos[1], relPos[0]);
-    var _longitude2 = tempBeta[1];
-    var psi2 = tempBeta[2] - Math.PI;
-	
-	return [psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000];
+var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a.charAt(1) != '-' && a !== "";};
+var vehicles = {
+	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}],
+	"FH": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Core", "color":"LIGHTGREEN"}, {"name":"Booster", "color":"RED"}]
 };
 function addHazard(coords) {
 	if (coords.length === 0) return;
 	viewer.entities.add({
-	  name : 'Hazard',
-	  polygon : {
-		hierarchy : Cesium.Cartesian3.fromDegreesArray(coords),
-		material : Cesium.Color.RED.withAlpha(0.25),
-		outline : true,
-		outlineColor : Cesium.Color.RED
-	  }
+		name : 'Hazard',
+		polygon : {
+			hierarchy : Cesium.Cartesian3.fromDegreesArray(coords),
+			material : Cesium.Color.RED.withAlpha(0.25),
+			outline : true,
+			outlineColor : Cesium.Color.RED
+		}
 	});
 }
 
-function loadMission(missionName, stages) {
-	viewer.entities.removeAll();
-	viewer.scene.primitives.removeAll();
+var player = null;
+var interval = null;
+
+function loadMission(missionName, stages, append, video) {
+	// Clean up previous mission - remove everything from the map, tear down the video player
+	if (interval != null) {
+		clearInterval(interval);
+		interval = null;
+	}
+	if (player != null) {
+		player.destroy();
+		player = null;
+	}
+	if (!append) {
+		viewer.entities.removeAll();
+		viewer.scene.primitives.removeAll();
+		// hack-around because Cesium doesn't clean up Points well
+		viewer.dataSourceDisplay._defaultDataSource._visualizers[13] = new Cesium.PointVisualizer(viewer.scene, viewer.entities)
+	}
+	// XHR the data files, parse and display
 	document.title = "Boostback | " + missionName;
 	missionName = missionName.replace(/ /g, "_");
 	var haz = new XMLHttpRequest();
@@ -54,7 +65,9 @@ function loadMission(missionName, stages) {
 			addHazard(coords);
 		}
 	};
-	haz.send(null);
+	haz.send(null);	
+
+	var stageModel = [];
 
 	stages.forEach(function(stage) {
 		var xhr = new XMLHttpRequest();
@@ -62,12 +75,27 @@ function loadMission(missionName, stages) {
 		xhr.onreadystatechange = function() {
 			if (this.status === 200 && this.readyState === 4) {
 				var lines = this.responseText.split("\n").filter(blanks);
+				// TODO - nicer highlighting of throttle in the path
 				var colors = lines.map(stage.name === "UpperStage" ?
 					function(line) { return Cesium.Color[stage.color]; } :
-					function(line) { var num = +line.split("\t")[12]; var color = (num > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color];console.log(color.toString()); return color; });
-				var points = lines.map(parseStageLine);
-				points = points.reduce(function(a,b) { return a.concat(b); }, []);
-				points = Cesium.Cartesian3.fromRadiansArrayHeights(points);
+					function(line) { var num = +line.split("\t")[12]; return (num > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
+				var points = lines.map(function(line) {
+					var tokens = line.split("\t");
+					return new Cesium.Cartesian3(tokens[1] * 1000, tokens[2] * 1000, tokens[3] * 1000);
+				});
+
+				stageModel.push({
+					start: parseInt(lines[0], 10),
+					points: points,
+					point: viewer.entities.add({
+						show: false,
+						position: points[0],
+						point: {
+							pixelSize: 10
+						}
+					})
+				});
+				stageModel.sort(function(a, b) { return a.start > b.start; });
 
 				var primitive = new Cesium.Primitive({
 					geometryInstances : new Cesium.GeometryInstance({
@@ -87,14 +115,42 @@ function loadMission(missionName, stages) {
 				viewer.scene.primitives.add(primitive);
 			}
 		};
-		xhr.send(null)
+		xhr.send(null);
 	});
 
-};
-
-document.getElementsByTagName("nav")[0].onclick = function(event) {
-	if (event.target.tagName.toLowerCase() === "input") {
-		loadMission(event.target.value, JSON.parse(event.target.getAttribute("data-stages")));
+	if (video) {
+		player = new YT.Player('launchPlayer', {
+			videoId: video.url
+		});
+		interval = setInterval(function() {
+			if (player != null) {
+				var seconds = Math.floor(player.getCurrentTime()) - video.start;
+				if (seconds < 0) {
+					for (var i = 0; i < stageModel.length; i++) {
+						stageModel[i].point.show = false;
+					}
+				} else {
+					for (var i = 0; i < stageModel.length; i++) {
+						stageModel[i].point.show = true;
+						if (seconds < stageModel[i].start) { // before separation
+							stageModel[i].point.position = stageModel[i - 1].point.position;
+						} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
+							stageModel[i].point.position = stageModel[i].points[stageModel[i].points.length - 1];
+						} else {
+							stageModel[i].point.position = stageModel[i].points[seconds - stageModel[i].start];
+						}
+					}
+				}
+			}
+		}, 1000);
 	}
 };
+
+$(".missionSelector").on("click", "button.mission", function(event) {
+	var el = $(this), video;
+	if (this.hasAttribute("data-video")) {
+		video = {url: el.data("video"), start: el.data("start") || 0 };
+	}
+	loadMission(el.data("mission"), vehicles[el.data("vehicle")], false, video);
+});
 
