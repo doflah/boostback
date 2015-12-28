@@ -53,6 +53,14 @@
 		}
 		nav a > .glyphicon { display: none; }
 		nav a[data-video] > .glyphicon { display: inline; }
+		#instructions {
+			position: absolute;
+			top: 50%;
+			margin-top: -50px;
+			width: 100%;
+			padding-left: 10%;
+			padding-right: 10%;
+		}
 	</style>
 </head>
 <body>
@@ -90,8 +98,13 @@
 			</div>
 		</div>
 	</nav>
-	<div id="cesiumContainer"></div>
-	<div id=launchPlayer></div>
+	<div id=cesiumContainer></div>
+	<div id=launchPlayer>
+		<div id=instructions>
+		Select a mission from the navigation menu.  Missions with a <span class="glyphicon glyphicon-facetime-video"></span>
+		icon have video associated with them.
+		</div>
+	</div>
 	<canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none"></canvas>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script>
