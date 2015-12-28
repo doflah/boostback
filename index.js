@@ -146,11 +146,17 @@ function loadMission(missionName, stages, append, video) {
 	}
 };
 
-$(".missionSelector").on("click", "button.mission", function(event) {
-	var el = $(this), video;
-	if (this.hasAttribute("data-video")) {
-		video = {url: el.data("video"), start: el.data("start") || 0 };
+function missionLoader(vehicle) {
+	return function (event) {
+		event.preventDefault();
+		var el = $(this), video;
+		if (this.hasAttribute("data-video")) {
+			video = {url: el.data("video"), start: el.data("start") || 0 };
+		}
+		loadMission(el.data("mission"), vehicle, false, video);
 	}
-	loadMission(el.data("mission"), vehicles[el.data("vehicle")], false, video);
-});
+}
+
+$("#f9missions").on("click", "a", missionLoader(vehicles.F9));
+$("#fhmissions").on("click", "a", missionLoader(vehicles.FH));
 

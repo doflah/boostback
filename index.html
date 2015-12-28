@@ -14,11 +14,33 @@
 			top: 0;
 			left: 0;
 			height: 100%;
-			width: 100%;
+			width: 75%;
+			margin: 0;
+			overflow: hidden;
+			padding: 50px 0 0 0;
+			font-family: sans-serif;
+		}
+		#launchPlayer {
+			position: absolute;
+			bottom: 0;
+			right: 0;
+			height: 100%;
+			width: 25%;
 			margin: 0;
 			overflow: hidden;
 			padding: 0;
-			font-family: sans-serif;
+		}
+
+		/* stack vertically in narrow windows */
+		@media (max-width: 640px) {
+			#cesiumContainer {
+				height: 50%;
+				width: 100%;
+			}
+			#launchPlayer {
+				height: 50%;
+				width: 100%;
+			}
 		}
 		html {
 			height: 100%;
@@ -29,30 +51,48 @@
 			overflow: hidden;
 			height: 100%;
 		}
-		.missionSelector {
-			padding-top: 10px;
-		}
-		.missionSelector > button {
-			width: 80%;
-		}
-		#launchPlayer {
-			height: 300px;
-			width: 300px;
-		}
+		nav a > .glyphicon { display: none; }
+		nav a[data-video] > .glyphicon { display: inline; }
 	</style>
 </head>
 <body>
+	<nav class="navbar navbar-default" style=z-index:1>
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+					<span class="sr-only">Toggle navigation</span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="#">Boostback</a>
+			</div>
+
+			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+				<ul class="nav navbar-nav navbar-right">
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon 9 <span class="caret"></span></a>
+						<ul class="dropdown-menu" id=f9missions>
+							<li><a href="#" data-mission=CRS-5  data-video=p7x-SumbynI data-start=958>CRS-5 <span class="glyphicon glyphicon-facetime-video"></span></a>
+							<li><a href="#" data-mission=DSCOVR data-video=OvHJSIKP0Hg data-start=960>DSCOVR <span class="glyphicon glyphicon-facetime-video"></a>
+							<li><a href="#" data-mission=CRS-7>DSCOVR <span class="glyphicon glyphicon-facetime-video"></a>
+							<li><a href="#" data-mission=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2 <span class="glyphicon glyphicon-facetime-video"></a>
+							<li><a href="#" data-mission=Jason-3>Jason-3 <span class="glyphicon glyphicon-facetime-video"></a>
+						</ul>
+					</li>
+					<li class="dropdown">
+						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon Heavy <span class="caret"></span></a>
+						<ul class="dropdown-menu" id=fhmissions>
+							<li><a href="#" data-mission=Falcon_Heavy>RTLS <span class="glyphicon glyphicon-facetime-video"></a>
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</div>
+	</nav>
 	<div id="cesiumContainer"></div>
+	<div id=launchPlayer></div>
 	<canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none"></canvas>
-	<div class="missionSelector" style="position:fixed;height:100%;width:200px;left:0px;">
-		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=CRS-5 data-video=p7x-SumbynI data-start=958>CRS-5</button>
-		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=DSCOVR data-video=OvHJSIKP0Hg data-start=960>DSCOVR</button>
-		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=CRS-7>CRS-7</button>
-		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2</button>
-		<button type=button class="btn btn-primary mission" data-vehicle=F9 data-mission=Jason-3>Jason-3</button>
-		<button type=button class="btn btn-primary mission" data-vehicle=FH data-mission=Falcon_Heavy>Falcon Heavy</button>
-		<div id=launchPlayer></div>
-	</div>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script>
 		// 2. This code loads the IFrame Player API code asynchronously.
