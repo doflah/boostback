@@ -3,7 +3,8 @@ var viewer = new Cesium.Viewer('cesiumContainer', {
 	skyAtmosphere: false,
 	animation: false,
 	scene3DOnly: true,
-	fullscreenButton: false
+	fullscreenButton: false,
+	geocoder: false
 });
 var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a.charAt(1) != '-' && a !== "";};
 var vehicles = {
