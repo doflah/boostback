@@ -66,7 +66,7 @@ function loadMission(missionName, stages, append, video) {
 			addHazard(coords);
 		}
 	};
-	haz.send(null);	
+	haz.send(null);
 
 	var stageModel = [];
 
@@ -76,14 +76,16 @@ function loadMission(missionName, stages, append, video) {
 		xhr.onreadystatechange = function() {
 			if (this.status === 200 && this.readyState === 4) {
 				var lines = this.responseText.split("\n").filter(blanks);
-				// TODO - nicer highlighting of throttle in the path
-				var colors = lines.map(stage.name === "UpperStage" ?
-					function(line) { return Cesium.Color[stage.color]; } :
-					function(line) { var num = +line.split("\t")[12]; return (num > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
 				var points = lines.map(function(line) {
 					var tokens = line.split("\t");
-					return new Cesium.Cartesian3(tokens[1] * 1000, tokens[2] * 1000, tokens[3] * 1000);
+					var coord = new Cesium.Cartesian3(tokens[1] * 1000, tokens[2] * 1000, tokens[3] * 1000);
+					coord.throttle = +tokens[12];
+					return (coord);
 				});
+				// TODO - nicer highlighting of throttle in the path
+				var colors = points.map(stage.name === "UpperStage" ?
+					function(point) { return Cesium.Color[stage.color]; } :
+					function(point) { return (point.throttle > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
 
 				stageModel.push({
 					start: parseInt(lines[0], 10),
@@ -126,19 +128,19 @@ function loadMission(missionName, stages, append, video) {
 		interval = setInterval(function() {
 			if (player != null) {
 				var seconds = Math.floor(player.getCurrentTime()) - video.start;
-				if (seconds < 0) {
-					for (var i = 0; i < stageModel.length; i++) {
-						stageModel[i].point.show = false;
-					}
-				} else {
-					for (var i = 0; i < stageModel.length; i++) {
-						stageModel[i].point.show = true;
-						if (seconds < stageModel[i].start) { // before separation
-							stageModel[i].point.position = stageModel[i - 1].point.position;
-						} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
-							stageModel[i].point.position = stageModel[i].points[stageModel[i].points.length - 1];
-						} else {
-							stageModel[i].point.position = stageModel[i].points[seconds - stageModel[i].start];
+				for (var i = 0; i < stageModel.length; i++) {
+					stageModel[i].point.show = true;
+					stageModel[i].point.point.color = Cesium.Color.WHITE;
+					if (seconds < stageModel[i].start) { // before separation
+						stageModel[i].point.position = stageModel[i - 1].point.position;
+						stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
+					} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
+						stageModel[i].point.position = stageModel[i].points[stageModel[i].points.length - 1];
+					} else {
+						var pos = stageModel[i].points[seconds - stageModel[i].start];
+						stageModel[i].point.position = pos;
+						if (pos.throttle > .5) {
+							stageModel[i].point.point.color = Cesium.Color.ORANGE;
 						}
 					}
 				}
