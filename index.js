@@ -132,8 +132,10 @@ function loadMission(missionName, stages, append, video) {
 					stageModel[i].point.show = true;
 					stageModel[i].point.point.color = Cesium.Color.WHITE;
 					if (seconds < stageModel[i].start) { // before separation
-						stageModel[i].point.position = stageModel[i - 1].point.position;
-						stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
+						if (i > 0) {
+							stageModel[i].point.position = stageModel[i - 1].point.position;
+							stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
+						}
 					} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
 						stageModel[i].point.position = stageModel[i].points[stageModel[i].points.length - 1];
 					} else {
