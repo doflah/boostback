@@ -78,7 +78,12 @@ function loadMission(missionName, stages, append, video) {
 				var lines = this.responseText.split("\n").filter(blanks);
 				var points = lines.map(function(line) {
 					var tokens = line.split("\t");
-					var coord = new Cesium.Cartesian3(tokens[1] * 1000, tokens[2] * 1000, tokens[3] * 1000);
+					// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
+					var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
+					var _longitude2 = Math.PI - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
+					var psi2 = Math.atan2(relPos[1], relPos[0]);
+					// Cesium converts back to xyz anyway, but we'll get better positioning this way
+					var coord = Cesium.Cartesian3.fromRadians(psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000);
 					coord.throttle = +tokens[12];
 					return (coord);
 				});
