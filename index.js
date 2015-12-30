@@ -101,6 +101,7 @@ function loadMission(missionName, stages, append, video) {
 				stageModel.sort(function(a, b) { return a.start > b.start; });
 				if (stageModel.length === stages.length) {
 					viewer.scene.camera.lookAt(stageModel[0].points[0], new Cesium.HeadingPitchRange(0, -Math.PI/3, 1000000));
+					viewer.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
 				}
 
 				var primitive = new Cesium.Primitive({
