@@ -7,8 +7,11 @@ var viewer = new Cesium.Viewer('cesiumContainer', {
 	geocoder: false
 });
 var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a.charAt(1) != '-' && a !== "";};
+Cesium.Color.FADEDCYAN   = new Cesium.Color(0, 1, 1, .5);
+Cesium.Color.FADEDRED    = new Cesium.Color(1, 0, 0, .5);
+Cesium.Color.FADEDORANGE = new Cesium.Color(1,.5, 0, .5);
 var vehicles = {
-	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}],
+	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}, {failure: true, "name":"UpperStage_planned", "color":"FADEDCYAN"}, {failure: true, "name":"Booster_planned", "color":"FADEDRED"}],
 	"FH": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Core", "color":"LIGHTGREEN"}, {"name":"Booster", "color":"RED"}]
 };
 function addHazard(coords) {
@@ -50,95 +53,98 @@ function loadMission(missionName, stages, append, video) {
 	// XHR the data files, parse and display
 	document.title = "Boostback | " + missionName;
 	missionName = missionName.replace(/ /g, "_");
-	var haz = new XMLHttpRequest();
-	haz.open("GET", missionName + "/hazard.txt", true);
-	haz.onreadystatechange = function() {
-		if (this.status == 200 && this.readyState == 4) {
-			var coords = [];
-			var points = this.responseText.split("\n")
+	$.ajax({
+		url: missionName + "/hazard.txt",
+	}).done(function(response) {
+		var coords = [], points = response.split("\n");
 
-			for (var i = 0; i < points.length; i++) {
-				if (points[i] == "") {
-					addHazard(coords);
-					coords = [];
-				} else {
-					var point = points[i].split(/\s+/);
-					coords.push(+point[0]);
-					coords.push(+point[1]);
-				}
+		for (var i = 0; i < points.length; i++) {
+			if (points[i] == "") {
+				addHazard(coords);
+				coords = [];
+			} else {
+				var point = points[i].split(/\s+/);
+				coords.push(+point[0]);
+				coords.push(+point[1]);
 			}
-			addHazard(coords);
 		}
-	};
-	haz.send(null);
+		addHazard(coords);
+	});
 
-	var stageModel = [];
+	var stageModel = [], count = 0;
+	var callback = function() {
+		count += 1;
+		if (count === stages.length) {
+			stageModel.sort(function(a, b) { return a.start > b.start; });
+			viewer.scene.camera.lookAt(stageModel[0].points[0], new Cesium.HeadingPitchRange(0, -Math.PI/3, 1000000));
+			viewer.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+		}
+	}
 
 	stages.forEach(function(stage) {
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", missionName + "/" + stage.name + ".dat", true);
-		xhr.onreadystatechange = function() {
-			if (this.status === 200 && this.readyState === 4) {
-				var lines = this.responseText.split("\n").filter(blanks);
-				var points = lines.map(function(line) {
-					var tokens = line.split("\t");
-					// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
-					var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
-					var _longitude2 = Math.PI - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
-					var psi2 = Math.atan2(relPos[1], relPos[0]);
-					// Cesium converts back to xyz anyway, but we'll get better positioning this way
-					var coord = Cesium.Cartesian3.fromRadians(psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000);
-					coord.throttle = +tokens[12];
-					coord.altitude = tokens[4] * 1000;
-					coord.downrange = tokens[6] * 1000;
-					return (coord);
-				});
-				// TODO - nicer highlighting of throttle in the path
-				var colors = points.map(function(point) { return (point.throttle > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
-
-				stageModel.push({
-					start: parseInt(lines[0], 10),
-					points: points,
-					point: viewer.entities.add({
-						name: stage.name,
-						show: false,
-						position: points[0],
-						point: {
-							pixelSize: 10
-						},
-						label: {
-							show: false,
-							font: '12pt sans-serif',
-							horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-							pixelOffset: new Cesium.Cartesian2(15, 0)
-						}
-					})
-				});
-				stageModel.sort(function(a, b) { return a.start > b.start; });
-				if (stageModel.length === stages.length) {
-					viewer.scene.camera.lookAt(stageModel[0].points[0], new Cesium.HeadingPitchRange(0, -Math.PI/3, 1000000));
-					viewer.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+		$.ajax({
+			url: missionName + "/" + stage.name + ".dat"
+		}).done(function(response) {
+			var lines = response.split("\n").filter(blanks);
+			var points = lines.map(function(line) {
+				var tokens = line.split("\t");
+				// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
+				var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
+				var _longitude2 = Math.PI - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
+				var psi2 = Math.atan2(relPos[1], relPos[0]);
+				// Cesium converts back to xyz anyway, but we'll get better positioning this way
+				var coord = Cesium.Cartesian3.fromRadians(psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000);
+				coord.throttle  = +tokens[12];
+				coord.altitude  = tokens[4] * 1000;
+				coord.downrange = tokens[6] * 1000;
+				return (coord);
+			});
+			// TODO - nicer highlighting of throttle in the path
+			var colors = points.map(function(point) {
+				if (point.throttle > .5) {
+					return stage.failure ? Cesium.Color.FADEDORANGE : Cesium.Color.ORANGE;
+				} else {
+					return Cesium.Color[stage.color];
 				}
+			});
 
-				var primitive = new Cesium.Primitive({
-					geometryInstances : new Cesium.GeometryInstance({
-						geometry : new Cesium.PolylineGeometry({
-							positions : points,
-							width : 3,
-							vertexFormat : Cesium.PolylineColorAppearance.VERTEX_FORMAT,
-							colors: colors,
-							colorsPerVertex: true
-						})
-					}),
-					appearance : new Cesium.PolylineColorAppearance({
-						translucent : false
+			stageModel.push({
+				start: parseInt(lines[0], 10),
+				points: points,
+				point: viewer.entities.add({
+					name: stage.name,
+					show: false,
+					position: points[0],
+					point: {
+						pixelSize: 10
+					},
+					label: {
+						show: false,
+						font: '12pt sans-serif',
+						horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+						pixelOffset: new Cesium.Cartesian2(15, 0)
+					}
+				})
+			});
+			callback();
+
+			var primitive = new Cesium.Primitive({
+				geometryInstances : new Cesium.GeometryInstance({
+					geometry : new Cesium.PolylineGeometry({
+						positions : points,
+						width : 3,
+						vertexFormat : Cesium.PolylineColorAppearance.VERTEX_FORMAT,
+						colors: colors,
+						colorsPerVertex: true
 					})
-				});
+				}),
+				appearance : new Cesium.PolylineColorAppearance({
+					translucent : true
+				})
+			});
 
-				viewer.scene.primitives.add(primitive);
-			}
-		};
-		xhr.send(null);
+			viewer.scene.primitives.add(primitive);
+		}).error(callback);
 	});
 
 	if (video) {
