@@ -24,6 +24,10 @@ function addHazard(coords) {
 	});
 }
 
+function formatMeters(title, value) {
+	return title + ": " + (value < 1000 ? value + " m" : value / 1000 + " km");
+}
+
 var player = null;
 var interval = null;
 
@@ -85,21 +89,28 @@ function loadMission(missionName, stages, append, video) {
 					// Cesium converts back to xyz anyway, but we'll get better positioning this way
 					var coord = Cesium.Cartesian3.fromRadians(psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000);
 					coord.throttle = +tokens[12];
+					coord.altitude = tokens[4] * 1000;
+					coord.downrange = tokens[6] * 1000;
 					return (coord);
 				});
 				// TODO - nicer highlighting of throttle in the path
-				var colors = points.map(stage.name === "UpperStage" ?
-					function(point) { return Cesium.Color[stage.color]; } :
-					function(point) { return (point.throttle > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
+				var colors = points.map(function(point) { return (point.throttle > .5) ? Cesium.Color.ORANGE : Cesium.Color[stage.color]; });
 
 				stageModel.push({
 					start: parseInt(lines[0], 10),
 					points: points,
 					point: viewer.entities.add({
+						name: stage.name,
 						show: false,
 						position: points[0],
 						point: {
 							pixelSize: 10
+						},
+						label: {
+							show: false,
+							font: '12pt sans-serif',
+							horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+							pixelOffset: new Cesium.Cartesian2(15, 0)
 						}
 					})
 				});
@@ -131,25 +142,31 @@ function loadMission(missionName, stages, append, video) {
 	});
 
 	if (video) {
-		player = new YT.Player('launchPlayer', {
-			videoId: video.url
-		});
+		player = new YT.Player('launchPlayer', { videoId: video.url });
 		interval = setInterval(function() {
 			if (player != null) {
 				var seconds = Math.floor(player.getCurrentTime()) - video.start;
 				for (var i = 0; i < stageModel.length; i++) {
 					stageModel[i].point.show = true;
+					stageModel[i].point.label.show = true;
 					stageModel[i].point.point.color = Cesium.Color.WHITE;
 					if (seconds < stageModel[i].start) { // before separation
 						if (i > 0) {
 							stageModel[i].point.position = stageModel[i - 1].point.position;
 							stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
 						}
+						stageModel[i].point.label.show = false;
 					} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
-						stageModel[i].point.position = stageModel[i].points[stageModel[i].points.length - 1];
+						var pos = stageModel[i].points[stageModel[i].points.length - 1];
+						stageModel[i].point.position = pos;
+						stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+												formatMeters("Downrange", pos.downrange);
+						
 					} else {
 						var pos = stageModel[i].points[seconds - stageModel[i].start];
 						stageModel[i].point.position = pos;
+						stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+												formatMeters("Downrange", pos.downrange);
 						if (pos.throttle > .5) {
 							stageModel[i].point.point.color = Cesium.Color.ORANGE;
 						}
