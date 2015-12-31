@@ -85,10 +85,12 @@
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon 9 <span class="caret"></span></a>
 						<ul class="dropdown-menu" id=f9missions>
+							<li class="dropdown-header">2015</li>
 							<li><a href="#" data-mission=CRS-5  data-video=p7x-SumbynI data-start=958>CRS-5 <span class="glyphicon glyphicon-facetime-video"></span></a>
 							<li><a href="#" data-mission=DSCOVR data-video=OvHJSIKP0Hg data-start=960>DSCOVR <span class="glyphicon glyphicon-facetime-video"></a>
 							<li><a href="#" data-mission=CRS-7>CRS-7 <span class="glyphicon glyphicon-facetime-video"></a>
 							<li><a href="#" data-mission=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2 <span class="glyphicon glyphicon-facetime-video"></a>
+							<li class="dropdown-header">2016</li>
 							<li><a href="#" data-mission=Jason-3>Jason-3 <span class="glyphicon glyphicon-facetime-video"></a>
 							<li><a href="#" data-mission=SES-9>SES-9 <span class="glyphicon glyphicon-facetime-video"></a>
 						</ul>
@@ -99,6 +101,9 @@
 							<li><a href="#" data-mission=Falcon_Heavy>RTLS <span class="glyphicon glyphicon-facetime-video"></a>
 						</ul>
 					</li>
+					<li>
+						<a href=# data-toggle=modal data-target=#aboutDlg>About</a>
+					</li>
 				</ul>
 			</div>
 		</div>
@@ -108,6 +113,23 @@
 		<div id=instructions>
 		Select a mission from the navigation menu.  Missions with a <span class="glyphicon glyphicon-facetime-video"></span>
 		icon have video associated with them.
+		</div>
+	</div>
+	<div id=aboutDlg class="modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title">About <i>Boostback</i></h4>
+				</div>
+				<div class="modal-body">
+					<p>This webapp is used to plot .dat files from <a href=http://flightclub.io>Flight Club</a> on a 3d map.</p>
+					<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
+						trajectory is cyan.  FH core trajectory is green.  Burns along each trajectory are colored in orange. If a
+						mission has a video associated with it, a point along the path will follow along.</p>
+					<p>The developer of this tool is not associated with SpaceX.</p>
+				</div>
+			</div>
 		</div>
 	</div>
 	<canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none"></canvas>
