@@ -190,10 +190,14 @@ function missionLoader(vehicle) {
 		if (this.hasAttribute("data-video")) {
 			video = {url: el.data("video"), start: el.data("start") || 0 };
 		}
-		loadMission(el.data("mission"), vehicle, false, video);
+		loadMission(this.id, vehicle, false, video);
 	}
 }
 
-$("#f9missions").on("click", "a", missionLoader(vehicles.F9));
-$("#fhmissions").on("click", "a", missionLoader(vehicles.FH));
+$("#f9missions").on("loadMission", "a", missionLoader(vehicles.F9));
+$("#fhmissions").on("loadMission", "a", missionLoader(vehicles.FH));
+
+$(window).on("hashchange", function() {
+	$(window.location.hash).trigger("loadMission");
+}).trigger("hashchange");
 
