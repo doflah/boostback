@@ -1,38 +1,85 @@
-var viewer = new Cesium.Viewer('cesiumContainer', {
-	timeline: false,
-	skyAtmosphere: false,
-	animation: false,
-	scene3DOnly: true,
-	fullscreenButton: false,
-	geocoder: false
-});
+var kmlTemplateStart = '<?xml version="1.0" encoding="UTF-8"?>\
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document>\
+	<name>$name</name>\
+	<description>Mission trajectory</description>\
+	<Style id="hazardStyle">\
+		<LineStyle>\
+			<color>ff0000ff</color>\
+			<width>4</width>\
+		</LineStyle>\
+		<PolyStyle>\
+			<color>3f0000ff</color>\
+		</PolyStyle>\
+	</Style>';
+
+var kmlTemplateEnd = '	</Document></kml>';
+
+var hazardTemplate = '<Placemark> \
+	<name>Hazard zone</name>\
+	<Polygon> <outerBoundaryIs>  <LinearRing>\
+		<coordinates>$coordinates</coordinates>\
+	</LinearRing> </outerBoundaryIs> </Polygon>\
+	<styleUrl>#hazardStyle</styleUrl>\
+</Placemark>';
+
+var placemarkTemplate = '<Placemark>\
+	<name>$name</name>\
+	<Style>\
+		<LineStyle>\
+			<color>$color</color>\
+			<width>10</width>\
+		</LineStyle>\
+	</Style>\
+	<LineString>\
+		<altitudeMode>absolute</altitudeMode>\
+		<coordinates>$coordinates</coordinates>\
+	</LineString>\
+</Placemark>';
+
 var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a.charAt(1) != '-' && a !== "";};
 Cesium.Color.FADEDCYAN   = new Cesium.Color(0, 1, 1, .5);
 Cesium.Color.FADEDRED    = new Cesium.Color(1, 0, 0, .5);
 Cesium.Color.FADEDORANGE = new Cesium.Color(1,.5, 0, .5);
+
 var vehicles = {
-	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"}, {failure: true, "name":"UpperStage_planned", "color":"FADEDCYAN"}, {failure: true, "name":"Booster_planned", "color":"FADEDRED"}],
+	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"},
+		{failure: true, "name":"UpperStage_planned", "color":"FADEDCYAN"}, {failure: true, "name":"Booster_planned", "color":"FADEDRED"}],
 	"FH": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Core", "color":"LIGHTGREEN"}, {"name":"Booster", "color":"RED"}]
 };
+
 function addHazard(coords) {
 	if (coords.length === 0) return;
 	viewer.entities.add({
 		name : 'Hazard',
 		polygon : {
-			hierarchy : Cesium.Cartesian3.fromDegreesArray(coords),
+			hierarchy : Cesium.Cartesian3.fromDegreesArray(coords.reduce(function(a, b) { return a.concat(b);}, [])),
 			material : Cesium.Color.RED.withAlpha(0.25),
 			outline : true,
 			outlineColor : Cesium.Color.RED
 		}
 	});
+	kml.push(hazardTemplate.replace("$coordinates", coords.map(function(coord) { return coord[0] + ","+ coord[1] + ",0"; }).join("\n")));
 }
 
 function formatMeters(title, value) {
 	return title + ": " + (value < 1000 ? value + " m" : value / 1000 + " km");
 }
 
+function formatColor(color) {
+	var alpha = Math.floor(color.alpha * 255),
+		red = Math.floor(color.red * 255),
+		green = Math.floor(color.green * 255),
+		blue = Math.floor(color.blue * 255);
+
+	return (alpha > 15 ? "" : "0") + alpha.toString(16) + 
+		(blue  > 15 ? "" : "0") + blue.toString(16) +
+		(green > 15 ? "" : "0") + green.toString(16) +
+		(red   > 15 ? "" : "0") + red.toString(16);
+}
+
 var player = null;
 var interval = null;
+var kml = null;
 
 function loadMission(missionName, stages, append, video) {
 	// Clean up previous mission - remove everything from the map, tear down the video player
@@ -53,6 +100,7 @@ function loadMission(missionName, stages, append, video) {
 	// XHR the data files, parse and display
 	document.title = "Boostback | " + missionName;
 	missionName = missionName.replace(/ /g, "_");
+	kml = [kmlTemplateStart.replace("$name", missionName)];
 	$.ajax({
 		url: missionName + "/hazard.txt",
 	}).done(function(response) {
@@ -64,8 +112,7 @@ function loadMission(missionName, stages, append, video) {
 				coords = [];
 			} else {
 				var point = points[i].split(/\s+/);
-				coords.push(+point[0]);
-				coords.push(+point[1]);
+				coords.push([+point[0], +point[1]]);
 			}
 		}
 		addHazard(coords);
@@ -75,9 +122,15 @@ function loadMission(missionName, stages, append, video) {
 	var callback = function() {
 		count += 1;
 		if (count === stages.length) {
+			// point camera at launch pad
 			stageModel.sort(function(a, b) { return a.start > b.start; });
 			viewer.scene.camera.lookAt(stageModel[0].points[0], new Cesium.HeadingPitchRange(0, -Math.PI/3, 1000000));
 			viewer.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+
+			// generate KML file blob
+			kml.push(kmlTemplateEnd);
+			var blob = new Blob(kml);
+			$("#downloadKML").prop("href", window.URL.createObjectURL(blob)).prop("download", missionName + ".kml");
 		}
 	}
 
@@ -90,10 +143,12 @@ function loadMission(missionName, stages, append, video) {
 				var tokens = line.split("\t");
 				// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
 				var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
-				var _longitude2 = Math.PI - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
-				var psi2 = Math.atan2(relPos[1], relPos[0]);
+				var latitude = Math.PI / 2 - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
+				var longitude = Math.atan2(relPos[1], relPos[0]);
 				// Cesium converts back to xyz anyway, but we'll get better positioning this way
-				var coord = Cesium.Cartesian3.fromRadians(psi2, _longitude2 - Math.PI / 2, tokens[4] * 1000);
+				var coord = Cesium.Cartesian3.fromRadians(longitude, latitude, tokens[4] * 1000);
+				coord.latitude = latitude * 180 / Math.PI;
+				coord.longitude = longitude * 180 / Math.PI;
 				coord.throttle  = +tokens[12];
 				coord.altitude  = tokens[4] * 1000;
 				coord.downrange = tokens[6] * 1000;
@@ -107,6 +162,12 @@ function loadMission(missionName, stages, append, video) {
 					return Cesium.Color[stage.color];
 				}
 			});
+
+			kml.push(placemarkTemplate.replace("$name", stage.name)
+				.replace("$color", formatColor(Cesium.Color[stage.color]))
+				.replace("$coordinates", points.map(function(p) {
+					return p.longitude + "," + p.latitude + "," + p.altitude;
+				}).join("\n")));
 
 			stageModel.push({
 				start: parseInt(lines[0], 10),
@@ -193,6 +254,16 @@ function missionLoader(vehicle) {
 		loadMission(this.id, vehicle, false, video);
 	}
 }
+
+// Initialize map
+var viewer = new Cesium.Viewer('cesiumContainer', {
+	timeline: false,
+	skyAtmosphere: false,
+	animation: false,
+	scene3DOnly: true,
+	fullscreenButton: false,
+	geocoder: false
+});
 
 $("#f9missions").on("loadMission", "a", missionLoader(vehicles.F9));
 $("#fhmissions").on("loadMission", "a", missionLoader(vehicles.FH));
