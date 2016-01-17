@@ -47,6 +47,16 @@ var vehicles = {
 	"FH": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Core", "color":"LIGHTGREEN"}, {"name":"Booster", "color":"RED"}]
 };
 
+function formatTime(seconds) {
+	var hours = Math.floor(seconds / 3600);
+	seconds -= hours * 3600;
+	var minutes = Math.floor(seconds / 60);
+	seconds -= minutes * 60;
+	return "T+" + (hours > 9 ? hours : ("0" + hours)) + ":" +
+		(minutes > 9 ? minutes : ("0" + minutes)) + ":" +
+		(seconds > 9 ? seconds : ("0" + seconds));
+}
+
 function addHazard(coords) {
 	if (coords.length === 0) return;
 	viewer.entities.add({
@@ -62,7 +72,7 @@ function addHazard(coords) {
 }
 
 function formatMeters(title, value) {
-	return title + ": " + (value < 1000 ? value + " m" : value / 1000 + " km");
+	return title + ": " + (value < 1000 ? value + " m" : Math.floor(value / 1000) + " km");
 }
 
 function formatColor(color) {
@@ -78,6 +88,31 @@ function formatColor(color) {
 }
 
 var player = null;
+// YouTube API stub for missions without videos
+var pseudoPlayer = {
+	time: 0,
+	length: 1800,
+	playing: false,
+	// advances when interrogated by the video thread so we don't need to kick off another thread to increment time
+	getCurrentTime: function() {
+		if (this.playing) {
+			this.setCurrentTime(this.time + 1);
+		}
+		return (this.time);
+	},
+	setCurrentTime: function (time) {
+		this.time = Math.min(this.length, time);
+		$("#pseudoPlayer .progress-bar").css("width", this.time * 100 / this.length + "%").text(formatTime(this.time));
+	},
+	setPlaying: function (playing) {
+		this.playing = playing;
+		$("#pseudoPlayer").toggleClass("playing", playing);
+	},
+	destroy: function() {
+		this.setCurrentTime(0);
+		this.setPlaying(false);
+	}
+};
 var interval = null;
 var kml = null;
 
@@ -210,38 +245,41 @@ function loadMission(missionName, stages, append, video) {
 
 	if (video) {
 		player = new YT.Player('launchPlayer', { videoId: video.url });
-		interval = setInterval(function() {
-			if (player != null) {
-				var seconds = Math.floor(player.getCurrentTime()) - video.start;
-				for (var i = 0; i < stageModel.length; i++) {
-					stageModel[i].point.show = true;
-					stageModel[i].point.label.show = true;
-					stageModel[i].point.point.color = Cesium.Color.WHITE;
-					if (seconds < stageModel[i].start) { // before separation
-						if (i > 0) {
-							stageModel[i].point.position = stageModel[i - 1].point.position;
-							stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
-						}
-						stageModel[i].point.label.show = false;
-					} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
-						var pos = stageModel[i].points[stageModel[i].points.length - 1];
-						stageModel[i].point.position = pos;
-						stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
-												formatMeters("Downrange", pos.downrange);
-						
-					} else {
-						var pos = stageModel[i].points[seconds - stageModel[i].start];
-						stageModel[i].point.position = pos;
-						stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
-												formatMeters("Downrange", pos.downrange);
-						if (pos.throttle > .5) {
-							stageModel[i].point.point.color = Cesium.Color.ORANGE;
-						}
-					}
+	} else {
+		// stub out the video and player
+		video = { start: 0 };
+		player = pseudoPlayer;
+		$("#launchPlayer").addClass("active");
+	}
+	interval = setInterval(function() {
+		var seconds = Math.floor(player.getCurrentTime()) - video.start;
+		for (var i = 0; i < stageModel.length; i++) {
+			stageModel[i].point.show = true;
+			stageModel[i].point.label.show = true;
+			stageModel[i].point.point.color = Cesium.Color.WHITE;
+			if (seconds < stageModel[i].start) { // before separation
+				if (i > 0) {
+					stageModel[i].point.position = stageModel[i - 1].point.position;
+					stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
+				}
+				stageModel[i].point.label.show = false;
+			} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
+				var pos = stageModel[i].points[stageModel[i].points.length - 1];
+				stageModel[i].point.position = pos;
+				stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+										formatMeters("Downrange", pos.downrange);
+				
+			} else {
+				var pos = stageModel[i].points[seconds - stageModel[i].start];
+				stageModel[i].point.position = pos;
+				stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+										formatMeters("Downrange", pos.downrange);
+				if (pos.throttle > .5) {
+					stageModel[i].point.point.color = Cesium.Color.ORANGE;
 				}
 			}
-		}, 1000);
-	}
+		}
+	}, 1000);
 };
 
 function missionLoader(vehicle) {
@@ -267,6 +305,11 @@ var viewer = new Cesium.Viewer('cesiumContainer', {
 
 $("#f9missions").on("loadMission", "a", missionLoader(vehicles.F9));
 $("#fhmissions").on("loadMission", "a", missionLoader(vehicles.FH));
+
+// add play controls if we don't have a youtube video
+$("#restart").on("click", function() { pseudoPlayer.setCurrentTime(0); });
+$("#play").on("click",    function() { pseudoPlayer.setPlaying(true); });
+$("#pause").on("click",   function() { pseudoPlayer.setPlaying(false); });
 
 $(window).on("hashchange", function() {
 	$(window.location.hash).trigger("loadMission");

@@ -54,7 +54,21 @@
 		}
 		nav a > .glyphicon { display: none; }
 		nav a[data-video] > .glyphicon { display: inline; }
-		#instructions {
+		#pseudoPlayer,
+		#launchPlayer.active #instructions {
+			display: none;
+		}
+		#launchPlayer.active #pseudoPlayer {
+			display: block;
+		}
+		#play, #pseudoPlayer.playing #pause {
+			display: inline-block;
+		}
+		#pause, #pseudoPlayer.playing #play {
+			display: none;
+		}
+		.progress-bar { color: gray; }
+		.sidebar {
 			position: absolute;
 			top: 50%;
 			margin-top: -50px;
@@ -115,9 +129,18 @@
 	</nav>
 	<div id=cesiumContainer></div>
 	<div id=launchPlayer>
-		<div id=instructions>
+		<div id=instructions class=sidebar>
 		Select a mission from the navigation menu.  Missions with a <span class="glyphicon glyphicon-facetime-video"></span>
 		icon have video associated with them.
+		</div>
+		<div id=pseudoPlayer class=sidebar>
+			There is no video for this mission yet.  Use the play/pause/restart buttons to play the mission.<br />
+			<div class="progress"><div class="progress-bar"></div></div>
+			<div class=btn-group>
+				<button id=restart type=button class="btn btn-default"><span class="glyphicon glyphicon-repeat"></button>
+				<button id=play type=button class="btn btn-default"><span class="glyphicon glyphicon-play"></button>
+				<button id=pause type=button class="btn btn-default"><span class="glyphicon glyphicon-pause"></button>
+			</div>
 		</div>
 	</div>
 	<div id=aboutDlg class="modal" tabindex="-1" role="dialog">
@@ -128,7 +151,7 @@
 					<h4 class="modal-title">About <i>Boostback</i></h4>
 				</div>
 				<div class="modal-body">
-					<p>This webapp is used to plot .dat files from <a href=http://flightclub.io>Flight Club</a> on a 3d map.</p>
+					<p>This webapp is used to plot data files from <a href=http://flightclub.io>Flight Club</a> on a 3d map.</p>
 					<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
 						trajectory is cyan.  FH core trajectory is green.  Burns along each trajectory are colored in orange. If a
 						mission has a video associated with it, a point along the path will follow along.</p>
