@@ -129,7 +129,8 @@ function loadMission(missionName, stages, append, video) {
 	if (!append) {
 		viewer.entities.removeAll();
 		viewer.scene.primitives.removeAll();
-		// hack-around because Cesium doesn't clean up Points well
+		// hack-around because Cesium doesn't clean up well
+		viewer.dataSourceDisplay._defaultDataSource._visualizers[11] = new Cesium.LabelVisualizer(viewer.scene, viewer.entities)
 		viewer.dataSourceDisplay._defaultDataSource._visualizers[13] = new Cesium.PointVisualizer(viewer.scene, viewer.entities)
 	}
 	// XHR the data files, parse and display
@@ -174,7 +175,8 @@ function loadMission(missionName, stages, append, video) {
 			url: missionName + "/" + stage.name + ".dat"
 		}).done(function(response) {
 			var lines = response.split("\n").filter(blanks);
-			var points = lines.map(function(line) {
+			var maxQ = { value: 0 };
+			var points = lines.map(function(line, idx) {
 				var tokens = line.split("\t");
 				// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
 				var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
@@ -187,6 +189,12 @@ function loadMission(missionName, stages, append, video) {
 				coord.throttle  = +tokens[12];
 				coord.altitude  = tokens[4] * 1000;
 				coord.downrange = tokens[6] * 1000;
+				var q = +tokens[7];
+				// arbitrarily restrict max-q lookup to first two minutes so we don't get pressure from re-entry/landing
+				if (q > maxQ.value && idx < 120) {
+					maxQ.value = q;
+					maxQ.point = coord;
+				}
 				return (coord);
 			});
 			// TODO - nicer highlighting of throttle in the path
@@ -224,6 +232,20 @@ function loadMission(missionName, stages, append, video) {
 			});
 			callback();
 
+			// add max Q indicator:
+			if (maxQ.value > 0) {
+				viewer.entities.add({
+					position: maxQ.point,
+					point: { pixelSize: 10 },
+					label: {
+						text: "Max Q",
+						font: '12pt sans-serif',
+						horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+						pixelOffset: new Cesium.Cartesian2(15, 0)
+					}
+				})
+			}
+
 			var primitive = new Cesium.Primitive({
 				geometryInstances : new Cesium.GeometryInstance({
 					geometry : new Cesium.PolylineGeometry({
@@ -244,7 +266,9 @@ function loadMission(missionName, stages, append, video) {
 	});
 
 	if (video) {
-		player = new YT.Player('launchPlayer', { videoId: video.url });
+		ytapi.done(function() {
+			player = new YT.Player('launchPlayer', { videoId: video.url });
+		});
 	} else {
 		// stub out the video and player
 		video = { start: 0 };
@@ -252,6 +276,7 @@ function loadMission(missionName, stages, append, video) {
 		$("#launchPlayer").addClass("active");
 	}
 	interval = setInterval(function() {
+		if (player == null) return;
 		var seconds = Math.floor(player.getCurrentTime()) - video.start;
 		for (var i = 0; i < stageModel.length; i++) {
 			stageModel[i].point.show = true;

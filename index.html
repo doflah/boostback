@@ -169,9 +169,12 @@
 		var firstScriptTag = document.getElementsByTagName('script')[0];
 		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
+		// Make sure we don't try to start videos until the api has been loaded
+		ytapi = new $.Deferred();
+
 		// 3. This function creates an <iframe> (and YouTube player)
 		//    after the API code downloads.
-		function onYouTubeIframeAPIReady() { }
+		function onYouTubeIframeAPIReady() { ytapi.resolve(); }
 	</script>
 
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
