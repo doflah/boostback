@@ -133,26 +133,28 @@ function loadMission(missionName, stages, append, video) {
 		viewer.dataSourceDisplay._defaultDataSource._visualizers[11] = new Cesium.LabelVisualizer(viewer.scene, viewer.entities)
 		viewer.dataSourceDisplay._defaultDataSource._visualizers[13] = new Cesium.PointVisualizer(viewer.scene, viewer.entities)
 	}
-	// XHR the data files, parse and display
-	document.title = "Boostback | " + missionName;
-	missionName = missionName.replace(/ /g, "_");
+	var uuid = /^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(missionName);
+	document.title = uuid ? "Boostback" : ("Boostback | " + missionName);
 	kml = [kmlTemplateStart.replace("$name", missionName)];
-	$.ajax({
-		url: missionName + "/hazard.txt",
-	}).done(function(response) {
-		var coords = [], points = response.split("\n");
+	if (!uuid) {
+		missionName = missionName.replace(/ /g, "_");
+		$.ajax({
+			url: missionName + "/hazard.txt",
+		}).done(function(response) {
+			var coords = [], points = response.split("\n");
 
-		for (var i = 0; i < points.length; i++) {
-			if (points[i] == "") {
-				addHazard(coords);
-				coords = [];
-			} else {
-				var point = points[i].split(/\s+/);
-				coords.push([+point[0], +point[1]]);
+			for (var i = 0; i < points.length; i++) {
+				if (points[i] == "") {
+					addHazard(coords);
+					coords = [];
+				} else {
+					var point = points[i].split(/\s+/);
+					coords.push([+point[0], +point[1]]);
+				}
 			}
-		}
-		addHazard(coords);
-	});
+			addHazard(coords);
+		});
+	}
 
 	var stageModel = [], count = 0;
 	var callback = function() {
@@ -172,7 +174,7 @@ function loadMission(missionName, stages, append, video) {
 
 	stages.forEach(function(stage) {
 		$.ajax({
-			url: missionName + "/" + stage.name + ".dat"
+			url: uuid ? ("http://www.flightclub.io/output/" + missionName + "_" + stage.name + ".dat") : (missionName + "/" + stage.name + ".dat")
 		}).done(function(response) {
 			var lines = response.split("\n").filter(blanks);
 			var maxQ = { value: 0 };
@@ -232,7 +234,7 @@ function loadMission(missionName, stages, append, video) {
 			});
 			callback();
 
-			// add max Q indicator:
+			/* add max Q indicator - figure out how accurate this is
 			if (maxQ.value > 0) {
 				viewer.entities.add({
 					position: maxQ.point,
@@ -244,7 +246,7 @@ function loadMission(missionName, stages, append, video) {
 						pixelOffset: new Cesium.Cartesian2(15, 0)
 					}
 				})
-			}
+			}*/
 
 			var primitive = new Cesium.Primitive({
 				geometryInstances : new Cesium.GeometryInstance({
@@ -337,6 +339,10 @@ $("#play").on("click",    function() { pseudoPlayer.setPlaying(true); });
 $("#pause").on("click",   function() { pseudoPlayer.setPlaying(false); });
 
 $(window).on("hashchange", function() {
-	$(window.location.hash).trigger("loadMission");
+	if (/^\#\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(window.location.hash)) {
+		loadMission(window.location.hash.substring(1), vehicles.F9, false, null);
+	} else {
+		$(window.location.hash).trigger("loadMission");
+	}
 }).trigger("hashchange");
 
