@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
@@ -9,7 +9,6 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
 		integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 	<style>
-		@import url(cesium/Widgets/widgets.css);
 		#cesiumContainer {
 			position: absolute;
 			top: 0;
@@ -107,7 +106,7 @@
 							<li><a href=#CRS-7   id=CRS-7>CRS-7 <span class="glyphicon glyphicon-facetime-video"></a>
 							<li><a href=#OrbComm_OG2_Launch_2 id=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2 <span class="glyphicon glyphicon-facetime-video"></a>
 							<li class="dropdown-header">2016</li>
-							<li><a href=#Jason-3 id=Jason-3 data-video=vkz_lclGXNg data-start=2475>Jason-3 <span class="glyphicon glyphicon-facetime-video"></a>
+							<li><a href=#Jason-3 id=Jason-3 data-video=vkz_lclGXNg data-start=1310>Jason-3 <span class="glyphicon glyphicon-facetime-video"></a>
 							<li><a href=#SES-9   id=SES-9>SES-9 <span class="glyphicon glyphicon-facetime-video"></a>
 						</ul>
 					</li>
@@ -127,7 +126,7 @@
 			</div>
 		</div>
 	</nav>
-	<div id=cesiumContainer></div>
+	<canvas id=cesiumContainer></canvas>
 	<div id=launchPlayer>
 		<div id=instructions class=sidebar>
 		Select a mission from the navigation menu.  Missions with a <span class="glyphicon glyphicon-facetime-video"></span>
@@ -160,7 +159,6 @@
 			</div>
 		</div>
 	</div>
-	<canvas id="tex-canvas" width="1024", height="512" style="background:red; display: none"></canvas>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script>
 		// 2. This code loads the IFrame Player API code asynchronously.
@@ -179,7 +177,7 @@
 
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
 		integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-	<script src="cesium/Cesium.js"></script>
+	<script src="worldwind.js"></script>
 	<script src="index.js"> </script>
 	<script>
 	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

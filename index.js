@@ -37,9 +37,10 @@ var placemarkTemplate = '<Placemark>\
 </Placemark>';
 
 var blanks = function(a){return a.charAt(0) != '#' && a.charAt(0) != '-' && a.charAt(1) != '-' && a !== "";};
-Cesium.Color.FADEDCYAN   = new Cesium.Color(0, 1, 1, .5);
-Cesium.Color.FADEDRED    = new Cesium.Color(1, 0, 0, .5);
-Cesium.Color.FADEDORANGE = new Cesium.Color(1,.5, 0, .5);
+WorldWind.Color.FADEDCYAN   = new WorldWind.Color(0, 1, 1, .5);
+WorldWind.Color.FADEDRED    = new WorldWind.Color(1, 0, 0, .5);
+WorldWind.Color.ORANGE = new WorldWind.Color(1,.5, 0);
+WorldWind.Color.FADEDORANGE = new WorldWind.Color(1,.5, 0, .5);
 
 var vehicles = {
 	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"},
@@ -59,15 +60,15 @@ function formatTime(seconds) {
 
 function addHazard(coords) {
 	if (coords.length === 0) return;
-	viewer.entities.add({
+	/*viewer.entities.add({
 		name : 'Hazard',
 		polygon : {
 			hierarchy : Cesium.Cartesian3.fromDegreesArray(coords.reduce(function(a, b) { return a.concat(b);}, [])),
-			material : Cesium.Color.RED.withAlpha(0.25),
+			material : WorldWind.Color.RED.withAlpha(0.25),
 			outline : true,
-			outlineColor : Cesium.Color.RED
+			outlineColor : WorldWind.Color.RED
 		}
-	});
+	});*/
 	kml.push(hazardTemplate.replace("$coordinates", coords.map(function(coord) { return coord[0] + ","+ coord[1] + ",0"; }).join("\n")));
 }
 
@@ -115,8 +116,11 @@ var pseudoPlayer = {
 };
 var interval = null;
 var kml = null;
+var pathsLayer = new WorldWind.RenderableLayer();
+pathsLayer.displayName = "Paths";
 
 function loadMission(missionName, stages, append, video) {
+	append = true;
 	// Clean up previous mission - remove everything from the map, tear down the video player
 	if (interval != null) {
 		clearInterval(interval);
@@ -127,11 +131,7 @@ function loadMission(missionName, stages, append, video) {
 		player = null;
 	}
 	if (!append) {
-		viewer.entities.removeAll();
-		viewer.scene.primitives.removeAll();
-		// hack-around because Cesium doesn't clean up well
-		viewer.dataSourceDisplay._defaultDataSource._visualizers[11] = new Cesium.LabelVisualizer(viewer.scene, viewer.entities)
-		viewer.dataSourceDisplay._defaultDataSource._visualizers[13] = new Cesium.PointVisualizer(viewer.scene, viewer.entities)
+		pathsLayer.removeAllRenderables();
 	}
 	var uuid = /^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(missionName);
 	document.title = uuid ? "Boostback" : ("Boostback | " + missionName);
@@ -156,14 +156,14 @@ function loadMission(missionName, stages, append, video) {
 		});
 	}
 
-	var stageModel = [], count = 0;
+	stageModel = [];
+	var count = 0;
 	var callback = function() {
 		count += 1;
 		if (count === stages.length) {
 			// point camera at launch pad
 			stageModel.sort(function(a, b) { return a.start > b.start; });
-			viewer.scene.camera.lookAt(stageModel[0].points[0], new Cesium.HeadingPitchRange(0, -Math.PI/3, 1000000));
-			viewer.scene.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+			// TODO: point camera at launch site
 
 			// generate KML file blob
 			kml.push(kmlTemplateEnd);
@@ -177,93 +177,79 @@ function loadMission(missionName, stages, append, video) {
 			url: uuid ? ("http://www.flightclub.io/output/" + missionName + "_" + stage.name + ".dat") : (missionName + "/" + stage.name + ".dat")
 		}).done(function(response) {
 			var lines = response.split("\n").filter(blanks);
-			var maxQ = { value: 0 };
 			var points = lines.map(function(line, idx) {
 				var tokens = line.split("\t");
 				// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
 				var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
 				var latitude = Math.PI / 2 - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
 				var longitude = Math.atan2(relPos[1], relPos[0]);
-				// Cesium converts back to xyz anyway, but we'll get better positioning this way
-				var coord = Cesium.Cartesian3.fromRadians(longitude, latitude, tokens[4] * 1000);
-				coord.latitude = latitude * 180 / Math.PI;
-				coord.longitude = longitude * 180 / Math.PI;
+				var coord = new WorldWind.Position(latitude * 180 / Math.PI, longitude * 180 / Math.PI, tokens[4] * 1000);
 				coord.throttle  = +tokens[12];
-				coord.altitude  = tokens[4] * 1000;
 				coord.downrange = tokens[6] * 1000;
-				var q = +tokens[7];
-				// arbitrarily restrict max-q lookup to first two minutes so we don't get pressure from re-entry/landing
-				if (q > maxQ.value && idx < 120) {
-					maxQ.value = q;
-					maxQ.point = coord;
-				}
 				return (coord);
 			});
 			// TODO - nicer highlighting of throttle in the path
 			var colors = points.map(function(point) {
 				if (point.throttle > .5) {
-					return stage.failure ? Cesium.Color.FADEDORANGE : Cesium.Color.ORANGE;
+					return stage.failure ? WorldWind.Color.FADEDORANGE : WorldWind.Color.ORANGE;
 				} else {
-					return Cesium.Color[stage.color];
+					return WorldWind.Color[stage.color];
 				}
 			});
 
 			kml.push(placemarkTemplate.replace("$name", stage.name)
-				.replace("$color", formatColor(Cesium.Color[stage.color]))
+				.replace("$color", formatColor(WorldWind.Color[stage.color]))
 				.replace("$coordinates", points.map(function(p) {
 					return p.longitude + "," + p.latitude + "," + p.altitude;
 				}).join("\n")));
 
+		    // Create the path.
+		    var path = new WorldWind.Path(points, null);
+		    path.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
+		    path.followTerrain = false;
+		    path.extrude = false; // make it a curtain
+		    path.useSurfaceShapeFor2D = true; // use a surface shape in 2D mode
+
+		    // Create and assign the path's attributes.
+		    var pathAttributes = new WorldWind.ShapeAttributes(null);
+			pathAttributes.outlineWidth = 3;
+		    pathAttributes.outlineColor = WorldWind.Color[stage.color];
+		    pathAttributes.interiorColor = WorldWind.Color[stage.color];
+		    pathAttributes.drawVerticals = path.extrude; // draw verticals only when extruding
+		    path.attributes = pathAttributes;
+
+        	var pinLibrary = "http://worldwindserver.net/webworldwind/images/white-dot.png";
+            var placemarkAttributes = new WorldWind.PlacemarkAttributes(null);
+
+			placemarkAttributes.imageScale = 0.1;
+	        placemarkAttributes.labelAttributes.offset = new WorldWind.Offset(WorldWind.OFFSET_FRACTION, 1, WorldWind.OFFSET_FRACTION, 0.5);
+    	    placemarkAttributes.labelAttributes.color = WorldWind.Color.WHITE;
+
+	        // For each placemark image, create a placemark with a label.
+            // Create the placemark and its label.
+            var placemark = new WorldWind.Placemark(points[0], true, null);
+            placemark.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
+
+            // Create the placemark attributes for this placemark. Note that the attributes differ only by their
+            // image URL.
+            placemarkAttributes = new WorldWind.PlacemarkAttributes(placemarkAttributes);
+            placemarkAttributes.imageSource = pinLibrary;
+            placemark.attributes = placemarkAttributes;
+
+            // Add the placemark to the layer.
+            pathsLayer.addRenderable(placemark);
+
 			stageModel.push({
 				start: parseInt(lines[0], 10),
 				points: points,
-				point: viewer.entities.add({
-					name: stage.name,
-					show: false,
-					position: points[0],
-					point: {
-						pixelSize: 10
-					},
-					label: {
-						show: false,
-						font: '12pt sans-serif',
-						horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-						pixelOffset: new Cesium.Cartesian2(15, 0)
-					}
-				})
+				point: placemark
 			});
 			callback();
 
-			/* add max Q indicator - figure out how accurate this is
-			if (maxQ.value > 0) {
-				viewer.entities.add({
-					position: maxQ.point,
-					point: { pixelSize: 10 },
-					label: {
-						text: "Max Q",
-						font: '12pt sans-serif',
-						horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-						pixelOffset: new Cesium.Cartesian2(15, 0)
-					}
-				})
-			}*/
+		    // Add the path to a layer and the layer to the World Window's layer list.
+		    pathsLayer.addRenderable(path);
+		    wwd.addLayer(pathsLayer);
 
-			var primitive = new Cesium.Primitive({
-				geometryInstances : new Cesium.GeometryInstance({
-					geometry : new Cesium.PolylineGeometry({
-						positions : points,
-						width : 3,
-						vertexFormat : Cesium.PolylineColorAppearance.VERTEX_FORMAT,
-						colors: colors,
-						colorsPerVertex: true
-					})
-				}),
-				appearance : new Cesium.PolylineColorAppearance({
-					translucent : true
-				})
-			});
-
-			viewer.scene.primitives.add(primitive);
 		}).error(callback);
 	});
 
@@ -282,27 +268,27 @@ function loadMission(missionName, stages, append, video) {
 		var seconds = Math.floor(player.getCurrentTime()) - video.start;
 		for (var i = 0; i < stageModel.length; i++) {
 			stageModel[i].point.show = true;
-			stageModel[i].point.label.show = true;
-			stageModel[i].point.point.color = Cesium.Color.WHITE;
+			//stageModel[i].point.label.show = true;
+			//stageModel[i].point.color = WorldWind.Color.WHITE;
 			if (seconds < stageModel[i].start) { // before separation
 				if (i > 0) {
 					stageModel[i].point.position = stageModel[i - 1].point.position;
-					stageModel[i].point.point.color = stageModel[i - 1].point.point.color;
+					//stageModel[i].point.color = stageModel[i - 1].point.point.color;
 				}
-				stageModel[i].point.label.show = false;
+				//stageModel[i].point.text.show = false;
 			} else if (seconds > stageModel[i].start + stageModel[i].points.length) { // after video
 				var pos = stageModel[i].points[stageModel[i].points.length - 1];
 				stageModel[i].point.position = pos;
-				stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+				stageModel[i].point.label = formatMeters("Altitude", pos.altitude) + "\n" +
 										formatMeters("Downrange", pos.downrange);
 				
 			} else {
 				var pos = stageModel[i].points[seconds - stageModel[i].start];
 				stageModel[i].point.position = pos;
-				stageModel[i].point.label.text = formatMeters("Altitude", pos.altitude) + "\n" +
+				stageModel[i].point.label = formatMeters("Altitude", pos.altitude) + "\n" +
 										formatMeters("Downrange", pos.downrange);
 				if (pos.throttle > .5) {
-					stageModel[i].point.point.color = Cesium.Color.ORANGE;
+					//stageModel[i].point.color = WorldWind.Color.ORANGE;
 				}
 			}
 		}
@@ -321,14 +307,15 @@ function missionLoader(vehicle) {
 }
 
 // Initialize map
-var viewer = new Cesium.Viewer('cesiumContainer', {
-	timeline: false,
-	skyAtmosphere: false,
-	animation: false,
-	scene3DOnly: true,
-	fullscreenButton: false,
-	geocoder: false
-});
+// Create a World Window for the canvas.
+var wwd = new WorldWind.WorldWindow("cesiumContainer");
+
+// Add some image layers to the World Window's globe.
+wwd.addLayer(new WorldWind.BMNGOneImageLayer());
+wwd.addLayer(new WorldWind.BingAerialLayer());
+
+// Add a compass, a coordinates display and some view controls to the World Window.
+wwd.addLayer(new WorldWind.CoordinatesDisplayLayer(wwd));
 
 $("#f9missions").on("loadMission", "a", missionLoader(vehicles.F9));
 $("#fhmissions").on("loadMission", "a", missionLoader(vehicles.FH));
