@@ -120,7 +120,6 @@ var pathsLayer = new WorldWind.RenderableLayer();
 pathsLayer.displayName = "Paths";
 
 function loadMission(missionName, stages, append, video) {
-	append = true;
 	// Clean up previous mission - remove everything from the map, tear down the video player
 	if (interval != null) {
 		clearInterval(interval);
@@ -309,9 +308,20 @@ function missionLoader(vehicle) {
 // Initialize map
 // Create a World Window for the canvas.
 var wwd = new WorldWind.WorldWindow("cesiumContainer");
+wwd.addLayer(new WorldWind.BMNGOneImageLayer());
 
 // Add some image layers to the World Window's globe.
-wwd.addLayer(new WorldWind.BMNGOneImageLayer());
+
+        var starFieldLayer = new WorldWind.StarFieldLayer();
+        var atmosphereLayer = new WorldWind.AtmosphereLayer();
+
+        //IMPORTANT: add the starFieldLayer before the atmosphereLayer
+        wwd.addLayer(starFieldLayer);
+        wwd.addLayer(atmosphereLayer);
+
+        var date = new Date();
+        starFieldLayer.time = date;
+        atmosphereLayer.time = date;
 wwd.addLayer(new WorldWind.BingAerialLayer());
 
 // Add a compass, a coordinates display and some view controls to the World Window.
