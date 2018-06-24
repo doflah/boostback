@@ -9,7 +9,7 @@
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
 		integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 	<style>
-		#cesiumContainer {
+		canvas {
 			position: absolute;
 			top: 0;
 			left: 0;
@@ -34,7 +34,7 @@
 
 		/* stack vertically in narrow windows */
 		@media (max-width: 640px) {
-			#cesiumContainer {
+			canvas {
 				height: 50%;
 				width: 100%;
 			}
@@ -81,85 +81,10 @@
 	</style>
 </head>
 <body>
-	<nav class="navbar navbar-default" style=z-index:1>
-		<div class="container">
-			<div class="navbar-header">
-				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-					<span class="sr-only">Toggle navigation</span>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-					<span class="icon-bar"></span>
-				</button>
-				<a class="navbar-brand" href="#">Boostback</a>
-			</div>
-
-			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-				<ul class="nav navbar-nav navbar-right">
-					<li>
-						<a>Select a vehicle and mission:</a>
-					</li>
-					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon 9 <span class="caret"></span></a>
-						<ul class="dropdown-menu" id=f9missions>
-							<li class="dropdown-header">2015</li>
-							<li><a href=#CRS-5   id=CRS-5  data-video=p7x-SumbynI data-start=958>CRS-5 <span class="glyphicon glyphicon-facetime-video"></span></a>
-							<li><a href=#DSCOVR  id=DSCOVR data-video=OvHJSIKP0Hg data-start=960>DSCOVR <span class="glyphicon glyphicon-facetime-video"></a>
-							<li><a href=#CRS-7   id=CRS-7>CRS-7 <span class="glyphicon glyphicon-facetime-video"></a>
-							<li><a href=#OrbComm_OG2_Launch_2 id=OrbComm_OG2_Launch_2 data-video=O5bTbVbe4e4 data-start=1380>OrbComm OG2-2 <span class="glyphicon glyphicon-facetime-video"></a>
-							<li class="dropdown-header">2016</li>
-							<li><a href=#Jason-3 id=Jason-3 data-video=vkz_lclGXNg data-start=1310>Jason-3 <span class="glyphicon glyphicon-facetime-video"></a>
-							<li><a href=#SES-9   id=SES-9>SES-9 <span class="glyphicon glyphicon-facetime-video"></a>
-						</ul>
-					</li>
-					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon Heavy <span class="caret"></span></a>
-						<ul class="dropdown-menu" id=fhmissions>
-							<li><a href=#Falcon_Heavy id=Falcon_Heavy>RTLS <span class="glyphicon glyphicon-facetime-video"></a>
-						</ul>
-					</li>
-					<li>
-						<a id=downloadKML>Download KML</a>
-					</li>
-					<li>
-						<a href=# data-toggle=modal data-target=#aboutDlg>About</a>
-					</li>
-				</ul>
-			</div>
-		</div>
-	</nav>
-	<canvas id=cesiumContainer></canvas>
-	<div id=launchPlayer>
-		<div id=instructions class=sidebar>
-		Select a mission from the navigation menu.  Missions with a <span class="glyphicon glyphicon-facetime-video"></span>
-		icon have video associated with them.
-		</div>
-		<div id=pseudoPlayer class=sidebar>
-			There is no video for this mission yet.  Use the play/pause/restart buttons to play the mission.<br />
-			<div class="progress"><div class="progress-bar"></div></div>
-			<div class=btn-group>
-				<button id=restart type=button class="btn btn-default"><span class="glyphicon glyphicon-repeat"></button>
-				<button id=play type=button class="btn btn-default"><span class="glyphicon glyphicon-play"></button>
-				<button id=pause type=button class="btn btn-default"><span class="glyphicon glyphicon-pause"></button>
-			</div>
-		</div>
-	</div>
-	<div id=aboutDlg class="modal" tabindex="-1" role="dialog">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-					<h4 class="modal-title">About <i>Boostback</i></h4>
-				</div>
-				<div class="modal-body">
-					<p>This webapp is used to plot data files from <a href=http://flightclub.io>Flight Club</a> on a 3d map.</p>
-					<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
-						trajectory is cyan.  FH core trajectory is green.  Burns along each trajectory are colored in orange. If a
-						mission has a video associated with it, a point along the path will follow along.</p>
-					<p>The developer of this tool is not associated with SpaceX.</p>
-				</div>
-			</div>
-		</div>
-	</div>
+	<div id="boostback"></div>
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script>
 		// 2. This code loads the IFrame Player API code asynchronously.
@@ -175,11 +100,8 @@
 		//    after the API code downloads.
 		function onYouTubeIframeAPIReady() { ytapi.resolve(); }
 	</script>
-
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
 		integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
-	<script src="worldwind.js"></script>
-	<script src="index.js"> </script>
 	<script>
 	  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
 	  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
@@ -190,5 +112,6 @@
 	  ga('send', 'pageview');
 
 	</script>
+    <script src="bundle.js"></script>
 </body>
 </html>
