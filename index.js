@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import Boostback from "./App.js";
+import Boostback from "./Boostback.js";
 
 var vehicles = {
 	"F9": [{"name":"UpperStage", "color":"CYAN"}, {"name":"Booster", "color":"RED"},

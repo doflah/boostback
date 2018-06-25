@@ -1,5 +1,6 @@
 import React, { Component} from "react";
 import '@nasaworldwind/worldwind';
+import "./boostback.css";
 
 var KML = {
 	templateStart: '<?xml version="1.0" encoding="UTF-8"?>\
@@ -38,6 +39,30 @@ var KML = {
 </Placemark>'
 };
 
+class Dialog extends React.Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return <div id={this.props.id} className="modal" tabIndex="-1" role="dialog">
+			<div className="modal-dialog modal-dialog-centered">
+				<div className="modal-content">
+					<div className="modal-header">
+						<h4 className="modal-title">{this.props.title}</h4>
+						<button type="button" className="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div className="modal-body">
+						{this.props.children}
+					</div>
+				</div>
+			</div>
+		</div>;
+	}
+}
+
 class Boostback extends React.Component {
 	constructor(props) {
 		super(props);
@@ -46,30 +71,21 @@ class Boostback extends React.Component {
 	}
 	render() {
 		return <React.Fragment>
-				<Navigation selectMission={this.selectMission} schedule={this.props.schedule} />
-				<Globe mission={this.state.mission} />
-				<Player />
-				<div id="aboutDlg" className="modal" tabIndex="-1" role="dialog">
-		<div className="modal-dialog">
-			<div className="modal-content">
-				<div className="modal-header">
-					<button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-					<h4 className="modal-title">About <i>Boostback</i></h4>
-				</div>
-				<div className="modal-body">
-					<p>This webapp is used to plot data files from <a href="http://flightclub.io">Flight Club</a> on a 3d map.</p>
-					<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
-						trajectory is cyan.  FH core trajectory is green.  Burns along each trajectory are colored in orange. If a
-						mission has a video associated with it, a point along the path will follow along.</p>
-					<p>The developer of this tool is not associated with SpaceX.</p>
-				</div>
-			</div>
-		</div>
-	</div>
-			</React.Fragment>;
+			<Navigation selectMission={this.selectMission} schedule={this.props.schedule} />
+			<Globe mission={this.state.mission} />
+			<Player />
+			<Dialog id="aboutDlg" title={["About ", <i>Boostback</i>]}>
+				<p>This webapp is used to plot data files from <a href="http://flightclub.io">Flight Club</a> on a 3d map.</p>
+				<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
+					trajectory is cyan.  FH core trajectory is green.  Burns along each trajectory are colored in orange. If a
+					mission has a video associated with it, a point along the path will follow along.</p>
+				<p>The developer of this tool is not associated with SpaceX.</p>
+			</Dialog>
+		</React.Fragment>;
 	}
 	selectMission(mission) {
 		this.setState({"mission": mission});
+		document.title = "Boostback | " + mission.name;
 	}
 	updateTime(time) {
 
@@ -82,52 +98,46 @@ class Navigation extends React.Component {
 		this.selectMission = props.selectMission;
 		this.missions =	props.schedule.map(function(year, i) {
 			let missionList = year.missions.map(function(mission, i){
-				return <li key={mission.name}><a onClick={() => props.selectMission(mission)}>{mission.name} <span className="glyphicon glyphicon-facetime-video"></span></a></li>;
+				return <a href="#" className="dropdown-item" key={mission.name} onClick={() => props.selectMission(mission)}>{mission.name} <span className="glyphicon glyphicon-facetime-video"></span></a>;
 			});
-			missionList.splice(0, 0, <li key={year.year} className="dropdown-header">{year.year}</li>);
+			missionList.splice(0, 0, <span key={year.year} className="dropdown-header">{year.year}</span>);
 			return missionList;
 		});
 	}
 	render() {
-		return 	<nav className="navbar navbar-default" style={{zIndex: '1'}}>
-		<div className="container">
-			<div className="navbar-header">
-				<button type="button" className="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-					<span className="sr-only">Toggle navigation</span>
-					<span className="icon-bar"></span>
-					<span className="icon-bar"></span>
-					<span className="icon-bar"></span>
-				</button>
-				<a className="navbar-brand" href="#">Boostback</a>
-			</div>
-
-			<div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-				<ul className="nav navbar-nav navbar-right">
-					<li>
-						<a>Select a vehicle and mission:</a>
+		return <nav className="navbar navbar-expand-lg navbar-light bg-light">
+			<a className="navbar-brand" href="#">Boostback</a>
+			<button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+				<span className="navbar-toggler-icon"></span>
+			</button>
+			<div className="collapse navbar-collapse">
+				<ul className="navbar-nav ml-auto">
+					<li className="nav-item">
+						<a className="nav-link">Select a vehicle and mission:</a>
 					</li>
-					<li className="dropdown">
-						<a href="#" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon 9 <span className="caret"></span></a>
-						<ul className="dropdown-menu" id="f9missions">
+					<li className="nav-item dropdown">
+						<a className="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Falcon 9</a>
+						<div className="dropdown-menu" aria-labelledby="navbarDropdown">
 							{this.missions}
-						</ul>
+						</div>
 					</li>
-					<li className="dropdown">
-						<a href="#" className="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Falcon Heavy <span className="caret"></span></a>
-						<ul className="dropdown-menu" id="fhmissions">
-							<li><a href="#Falcon_Heavy" id="Falcon_Heavy">RTLS <span className="glyphicon glyphicon-facetime-video"></span></a></li>
-						</ul>
+					<li className="nav-item dropdown">
+						<a href="#" className="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+							Falcon Heavy <span className="caret"></span>
+						</a>
+						<div className="dropdown-menu">
+							<a href="#" className="dropdown-item">RTLS <span className="glyphicon glyphicon-facetime-video"></span></a>
+						</div>
+					</li>
+					<li className="nav-item">
+						<a className="nav-link" id="downloadKML">Download KML</a>
 					</li>
 					<li>
-						<a id="downloadKML">Download KML</a>
-					</li>
-					<li>
-						<a href="#" data-toggle="modal" data-target="#aboutDlg">About</a>
+						<a className="nav-link" href="#" data-toggle="modal" data-target="#aboutDlg">About</a>
 					</li>
 				</ul>
 			</div>
-		</div>
-	</nav>;
+		</nav>;
 	}
 }
 
@@ -144,22 +154,22 @@ class Globe extends React.Component {
 	componentDidMount() {
 		WorldWind.Color.FADEDCYAN   = new WorldWind.Color(0, 1, 1, .5);
 		WorldWind.Color.FADEDRED    = new WorldWind.Color(1, 0, 0, .5);
-		WorldWind.Color.ORANGE = new WorldWind.Color(1,.5, 0);
 		WorldWind.Color.FADEDORANGE = new WorldWind.Color(1,.5, 0, .5);
+		WorldWind.Color.ORANGE      = new WorldWind.Color(1,.5, 0);
 
 		let wwd = new WorldWind.WorldWindow(this.canvasId);
 		this.wwd = wwd;
 		wwd.addLayer(new WorldWind.BMNGOneImageLayer());
-        var starFieldLayer = new WorldWind.StarFieldLayer();
-        var atmosphereLayer = new WorldWind.AtmosphereLayer();
+		var starFieldLayer = new WorldWind.StarFieldLayer();
+		var atmosphereLayer = new WorldWind.AtmosphereLayer();
 
-        //IMPORTANT: add the starFieldLayer before the atmosphereLayer
-        wwd.addLayer(starFieldLayer);
-        wwd.addLayer(atmosphereLayer);
+		//IMPORTANT: add the starFieldLayer before the atmosphereLayer
+		wwd.addLayer(starFieldLayer);
+		wwd.addLayer(atmosphereLayer);
 
-        var date = new Date();
-        starFieldLayer.time = date;
-        atmosphereLayer.time = date;
+		var date = new Date();
+		starFieldLayer.time = date;
+		atmosphereLayer.time = date;
 		wwd.addLayer(new WorldWind.BingAerialLayer());
 
 		// Add a compass, a coordinates display and some view controls to the World Window.
@@ -175,12 +185,12 @@ class Globe extends React.Component {
 		var pathsLayer = this.pathsLayer;
 		pathsLayer.removeAllRenderables();
 		var wwd = this.wwd;
+		wwd.removeLayer(pathsLayer);
 		var missionName = this.props.mission.name;
 		var stages = this.props.mission.vehicle;
 		var append = false;
 		var video = null;
 		var uuid = /^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}$/.test(missionName);
-		//document.title = uuid ? "Boostback" : ("Boostback | " + missionName);
 		var kml = [];
 
 		var stageModel = [];
@@ -188,6 +198,8 @@ class Globe extends React.Component {
 		var callback = function() {
 			count += 1;
 			if (count === stages.length) {
+		    wwd.addLayer(pathsLayer);
+				wwd.redraw();
 				// point camera at launch pad
 				stageModel.sort(function(a, b) { return a.start > b.start; });
 				// TODO: point camera at launch site
@@ -230,41 +242,41 @@ class Globe extends React.Component {
 						return p.longitude + "," + p.latitude + "," + p.altitude;
 					}).join("\n")));
 
-			    // Create the path.
-			    var path = new WorldWind.Path(points, null);
-			    path.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
-			    path.followTerrain = false;
-			    path.extrude = false; // make it a curtain
-			    path.useSurfaceShapeFor2D = true; // use a surface shape in 2D mode
+		    // Create the path.
+		    var path = new WorldWind.Path(points, null);
+				path.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
+				path.followTerrain = false;
+				path.extrude = false; // make it a curtain
+				path.useSurfaceShapeFor2D = true; // use a surface shape in 2D mode
 
-			    // Create and assign the path's attributes.
-			    var pathAttributes = new WorldWind.ShapeAttributes(null);
+				// Create and assign the path's attributes.
+				var pathAttributes = new WorldWind.ShapeAttributes(null);
 				pathAttributes.outlineWidth = 3;
-			    pathAttributes.outlineColor = WorldWind.Color[stage.color];
-			    pathAttributes.interiorColor = WorldWind.Color[stage.color];
-			    pathAttributes.drawVerticals = path.extrude; // draw verticals only when extruding
-			    path.attributes = pathAttributes;
+				pathAttributes.outlineColor = WorldWind.Color[stage.color];
+				pathAttributes.interiorColor = WorldWind.Color[stage.color];
+				pathAttributes.drawVerticals = path.extrude; // draw verticals only when extruding
+				path.attributes = pathAttributes;
 
-        		var pinLibrary = "http://worldwindserver.net/webworldwind/images/white-dot.png";
-        	    var placemarkAttributes = new WorldWind.PlacemarkAttributes(null);
+				var pinLibrary = "http://worldwindserver.net/webworldwind/images/white-dot.png";
+				var placemarkAttributes = new WorldWind.PlacemarkAttributes(null);
 
 				placemarkAttributes.imageScale = 0.1;
-	    	    placemarkAttributes.labelAttributes.offset = new WorldWind.Offset(WorldWind.OFFSET_FRACTION, 1, WorldWind.OFFSET_FRACTION, 0.5);
-    		    placemarkAttributes.labelAttributes.color = WorldWind.Color.WHITE;
+				placemarkAttributes.labelAttributes.offset = new WorldWind.Offset(WorldWind.OFFSET_FRACTION, 1, WorldWind.OFFSET_FRACTION, 0.5);
+				placemarkAttributes.labelAttributes.color = WorldWind.Color.WHITE;
 
-	    	    // For each placemark image, create a placemark with a label.
-        	    // Create the placemark and its label.
-        	    var placemark = new WorldWind.Placemark(points[0], true, null);
-        	    placemark.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
+				// For each placemark image, create a placemark with a label.
+				// Create the placemark and its label.
+				var placemark = new WorldWind.Placemark(points[0], true, null);
+				placemark.altitudeMode = WorldWind.RELATIVE_TO_GROUND;
 
-        	    // Create the placemark attributes for this placemark. Note that the attributes differ only by their
-        	    // image URL.
-        	    placemarkAttributes = new WorldWind.PlacemarkAttributes(placemarkAttributes);
-        	    placemarkAttributes.imageSource = pinLibrary;
-        	    placemark.attributes = placemarkAttributes;
+				// Create the placemark attributes for this placemark. Note that the attributes differ only by their
+				// image URL.
+				placemarkAttributes = new WorldWind.PlacemarkAttributes(placemarkAttributes);
+				placemarkAttributes.imageSource = pinLibrary;
+				placemark.attributes = placemarkAttributes;
 
-        	    // Add the placemark to the layer.
-        	    pathsLayer.addRenderable(placemark);
+				// Add the placemark to the layer.
+				pathsLayer.addRenderable(placemark);
 
 				stageModel.push({
 					start: parseInt(lines[0], 10),
@@ -273,11 +285,10 @@ class Globe extends React.Component {
 				});
 				callback();
 
-			    // Add the path to a layer and the layer to the World Window's layer list.
-			    pathsLayer.addRenderable(path);
-			    wwd.addLayer(pathsLayer);
+				// Add the path to a layer and the layer to the World Window's layer list.
+				pathsLayer.addRenderable(path);
 
-			}).error(callback);
+			}).fail(callback);
 		});
 	}
 }
