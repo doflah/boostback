@@ -5,9 +5,9 @@ For past missions with videos, points tracking stage locations will follow along
 timestamp.  Each stage trajectory is painted in a different color and orange segments represent burn durations.
 
 Credits:
-	FlightClub (trajectory data, hazard areas)
-	Cesium (3d map plotting)
-	YouTube (Launch video hosting)
+- FlightClub (trajectory data, hazard areas)
+- NASA WorldWind (3d map plotting)
+- YouTube (Launch video hosting)
 
 The developer of this tool is not associated with SpaceX
 
