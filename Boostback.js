@@ -73,7 +73,7 @@ class Boostback extends React.Component {
 		return <React.Fragment>
 			<Navigation selectMission={this.selectMission} schedule={this.props.schedule} />
 			<Globe mission={this.state.mission} />
-			<Player />
+			<Player mission={this.state.mission} />
 			<Dialog id="aboutDlg" title={["About ", <i>Boostback</i>]}>
 				<p>This webapp is used to plot data files from <a href="http://flightclub.io">Flight Club</a> on a 3d map.</p>
 				<p>Select a mission from a navigation dropdown to draw it on the map.  Booster trajectory is red and upper stage
@@ -294,22 +294,53 @@ class Globe extends React.Component {
 }
 
 class Player extends React.Component {
+	constructor() {
+		super();
+		this.playerId = "launchPlayer";
+		// This code loads the IFrame Player API code asynchronously.
+		var tag = document.createElement('script');
+		tag.src = "https://www.youtube.com/iframe_api";
+		var firstScriptTag = document.getElementsByTagName('script')[0];
+		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+		// Make sure we don't try to start videos until the api has been loaded
+		var ytapi = new $.Deferred();
+		this.ytapi = ytapi;
+
+		// This function creates an <iframe> (and YouTube player) after the API code downloads.
+		window.onYouTubeIframeAPIReady = function() { ytapi.resolve(); }
+	}
 	render() {
-		return 	<aside id="launchPlayer">
-		<div id="instructions" className="sidebar">
-		Select a mission from the navigation menu.  Missions with a <span className="glyphicon glyphicon-facetime-video"></span>
-		icon have video associated with them.
-		</div>
-		<div id="pseudoPlayer" className="sidebar">
-			There is no video for this mission yet.  Use the play/pause/restart buttons to play the mission.<br />
-			<div className="progress"><div className="progress-bar"></div></div>
-			<div className="btn-group">
-				<button onClick={this.restart} type="button" className="btn btn-default"><span className="glyphicon glyphicon-repeat"></span></button>
-				<button onClick={this.play} type="button" className="btn btn-default"><span className="glyphicon glyphicon-play"></span></button>
-				<button onClick={this.pause} type="button" className="btn btn-default"><span className="glyphicon glyphicon-pause"></span></button>
+		return 	<aside id={this.playerId}>
+			<div id="instructions" className="sidebar">
+				Select a mission from the navigation menu.  Missions with a <span className="glyphicon glyphicon-facetime-video"></span>
+				icon have video associated with them.
 			</div>
-		</div>
-	</aside>;
+			<div id="pseudoPlayer" className="sidebar">
+				There is no video for this mission yet.  Use the play/pause/restart buttons to play the mission.<br />
+				<div className="progress"><div className="progress-bar"></div></div>
+				<div className="btn-group">
+					<button onClick={this.restart} className="btn btn-default"><span className="glyphicon glyphicon-repeat"></span></button>
+					<button onClick={this.play} className="btn btn-default"><span className="glyphicon glyphicon-play"></span></button>
+					<button onClick={this.pause} className="btn btn-default"><span className="glyphicon glyphicon-pause"></span></button>
+				</div>
+			</div>
+		</aside>;
+	}
+
+	componentDidUpdate() {
+		var video = this.props.mission.video;
+		var self = this;
+		if (video) {
+			this.ytapi.done(function() {
+				self.player = new YT.Player(self.playerId, { videoId: video });
+			});
+		} else {
+			if (self.player != null) {
+				self.player.destroy();
+				self.player = null;
+			}
+		}
 	}
 
 	restart() {
