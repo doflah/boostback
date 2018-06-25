@@ -11,6 +11,7 @@ canvas {
 }
 #launchPlayer {
 	position: absolute;
+	top: 50px;
 	bottom: 0;
 	right: 0;
 	height: 100%;
@@ -43,10 +44,7 @@ body {
 nav.navbar {
 	z-index: 1;
 	padding: 0 50px;
-}
-.nav-link {
-	padding-top: .75rem;
-	padding-bottom: .75rem;
+	min-height: 50px;
 }
 nav a > .glyphicon { display: none; }
 nav a[data-video] > .glyphicon { display: inline; }
