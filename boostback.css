@@ -1,0 +1,76 @@
+canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100%;
+	width: 75%;
+	margin: 0;
+	overflow: hidden;
+	margin-top: 48px;
+	background-color: black;
+}
+#launchPlayer {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	height: 100%;
+	width: 25%;
+	margin: 0;
+	overflow: hidden;
+	padding: 0;
+}
+
+/* stack vertically in narrow windows */
+@media (max-width: 640px) {
+	canvas {
+		height: 50%;
+		width: 100%;
+	}
+	#launchPlayer {
+		height: 50%;
+		width: 100%;
+	}
+}
+html {
+	height: 100%;
+}
+body {
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+	height: 100%;
+}
+nav.navbar {
+	z-index: 1;
+	padding: 0 50px;
+}
+.nav-link {
+	padding-top: .75rem;
+	padding-bottom: .75rem;
+}
+nav a > .glyphicon { display: none; }
+nav a[data-video] > .glyphicon { display: inline; }
+#pseudoPlayer,
+#launchPlayer.active #instructions {
+	display: none;
+}
+#launchPlayer.active #pseudoPlayer {
+	display: block;
+}
+#play, #pseudoPlayer.playing #pause {
+	display: inline-block;
+}
+#pause, #pseudoPlayer.playing #play {
+	display: none;
+}
+.progress-bar { color: gray; }
+.sidebar {
+	position: absolute;
+	top: 50%;
+	margin-top: -50px;
+	width: 100%;
+	padding-left: 10%;
+	padding-right: 10%;
+}
+#downloadKML { display: none; }
+#downloadKML[href] { display: block; }
