@@ -95,14 +95,20 @@ class Boostback extends React.Component {
 class Navigation extends React.Component {
 	constructor(props) {
 		super(props);
-		this.selectMission = props.selectMission;
-		this.missions =	props.schedule.map(function(year, i) {
-			let missionList = year.missions.map(function(mission, i){
-				return <a href="#" className="dropdown-item" key={mission.name} onClick={() => props.selectMission(mission)}>{mission.name} <span className="glyphicon glyphicon-facetime-video"></span></a>;
-			});
-			missionList.splice(0, 0, <span key={year.year} className="dropdown-header">{year.year}</span>);
-			return missionList;
-		});
+		props.schedule.sort((a, b) => a.year - b.year);
+		this.flights = props.schedule.reduce(function(schedule, flight) {
+			if (flight.year !== schedule.lastyear) {
+				schedule.push(<span key={flight.year} className="dropdown-header">{flight.year}</span>);
+				schedule.lastyear = flight.year;
+			}
+			schedule.push(<a href="#" className="dropdown-item" key={flight.id} onClick={(e) => selectMission(e, flight)}>{flight.name} <span className="glyphicon glyphicon-facetime-video"></span></a>);
+			return schedule;
+		}, []);
+		
+		function selectMission (e, mission) {
+			props.selectMission(mission);
+			e.preventDefault();
+		}
 	}
 	render() {
 		return <nav className="navbar navbar-expand-lg navbar-light bg-light">
@@ -112,21 +118,10 @@ class Navigation extends React.Component {
 			</button>
 			<div className="collapse navbar-collapse" id="navbarSupportedContent">
 				<ul className="navbar-nav ml-auto">
-					<li className="nav-item">
-						<a className="nav-link">Select a vehicle and mission:</a>
-					</li>
 					<li className="nav-item dropdown">
-						<a className="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Falcon 9</a>
+						<a className="nav-link dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Flights</a>
 						<div className="dropdown-menu" aria-labelledby="navbarDropdown">
-							{this.missions}
-						</div>
-					</li>
-					<li className="nav-item dropdown">
-						<a href="#" className="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-							Falcon Heavy <span className="caret"></span>
-						</a>
-						<div className="dropdown-menu">
-							<a href="#" className="dropdown-item">RTLS <span className="glyphicon glyphicon-facetime-video"></span></a>
+							{this.flights}
 						</div>
 					</li>
 					<li className="nav-item">
@@ -186,7 +181,7 @@ class Globe extends React.Component {
 		pathsLayer.removeAllRenderables();
 		var wwd = this.wwd;
 		wwd.removeLayer(pathsLayer);
-		var missionName = this.props.mission.name;
+		var missionName = this.props.mission.id;
 		var stages = this.props.mission.vehicle;
 		var append = false;
 		var video = null;
@@ -217,7 +212,7 @@ class Globe extends React.Component {
 			}).done(function(response) {
 				var lines = response.split("\n").filter(blanks);
 				var points = lines.map(function(line, idx) {
-					var tokens = line.split("\t");
+					var tokens = line.split(/[\t;]/);
 					// undo the lat/lon -> xyz transform from FlightClub - it seems to be spherical rather than ellipsoidal
 					var relPos = [ +tokens[1], +tokens[2], +tokens[3] ];
 					var latitude = Math.PI / 2 - Math.atan2(Math.sqrt(relPos[0] * relPos[0] + relPos[1] * relPos[1]), relPos[2]);
